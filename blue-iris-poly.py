@@ -95,6 +95,17 @@ class Controller(udi_interface.Node):
             LOGGER.error('Error connecting to Blue Iris Server, host: %s.  %s', str(self.host), str(ex))
             return False
 
+    # if the connection failed, try and reconnect
+    def reconnect(self):
+        while not self.connect():
+            time.sleep(30) # wait 30 seconds before trying again
+            LOGGER.info('Failed to re-connect to Blue Iris server, will retry.')
+
+        # do we need to do a discovery each time?
+        self.initialized = True
+        return True
+
+
     def fillPanels(self):
         for node in self.poly.nodes():
             node.reportDrivers()
@@ -108,7 +119,11 @@ class Controller(udi_interface.Node):
             for node in self.poly.nodes():
                 node.query()
         except Exception as ex:
+            # error trying to query server, mark as disconnect and re-connect
             LOGGER.error('Error processing shortPoll for %s: %s', self.name, str(ex))
+            self.setDriver('GV1',3)
+            self.initialized = False
+            self.reconnect()
 
     def query(self, command=None):
         try:
@@ -118,6 +133,8 @@ class Controller(udi_interface.Node):
         except Exception as ex:
             LOGGER.error('Error querying Blue Iris %s', self.name)
             self.setDriver('GV1',3) #If there was an error querying the server, set the status to "Disconnected" so that the ISY can trigger an appropriate action (after a time delay set in ISY program).
+            self.initialized = False
+            self.reconnect()
 
 
     def discover(self, *args, **kwargs):
