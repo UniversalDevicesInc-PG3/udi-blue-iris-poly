@@ -115,9 +115,18 @@ class Controller(udi_interface.Node):
         if 'longPoll' in pollflag:
             return False
         try:
+            # if this fails, i.e. returns False, then it may mean that
+            # we don't have a connection
             self.cameras = self.cmd("camlist")
-            for node in self.poly.nodes():
-                node.query()
+            if !self.cameras: 
+                LOGGER.error('We are not connected to server, re-connect')
+                self.setDriver('GV1',3)
+                self.initialized = False
+                self.reconnect()
+            else:
+                # We're good, so query each camera
+                for node in self.poly.nodes():
+                    node.query()
         except Exception as ex:
             # error trying to query server, mark as disconnect and re-connect
             LOGGER.error('Error processing shortPoll for %s: %s', self.name, str(ex))
@@ -160,6 +169,11 @@ class Controller(udi_interface.Node):
     def delete(self):
         LOGGER.info('Deleting Blue Iris controller')
 
+    # returns:
+    #  true or false
+    #  _response['data']
+    #  _response
+    #
     def cmd(self, cmd, params=dict()):
         try:
             #LOGGER.debug('Sending command to Blue Iris, cmd: %s, params: %s', str(cmd), str(params))
