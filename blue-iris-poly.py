@@ -118,7 +118,7 @@ class Controller(udi_interface.Node):
             # if this fails, i.e. returns False, then it may mean that
             # we don't have a connection
             self.cameras = self.cmd("camlist")
-            if !self.cameras: 
+            if not self.cameras: 
                 LOGGER.error('We are not connected to server, re-connect')
                 self.setDriver('GV1',3)
                 self.initialized = False
